@@ -123,6 +123,7 @@ def getComment():
                 for comment in res:
                     comment = formatHtml(comment)
                     f2.write(comment)
+                    f2.write('\n')
 
 
 
@@ -182,6 +183,9 @@ def formatHtml(line):
     line = line.replace('<img src="http://img3','http://img3')
     line = line.replace('" />','')
     line = line.replace('">','')
+    line = line.replace('&lt;','<') # 替换小于号
+    line = line.replace('&gt;','>') #替换大于号
+    line = line.replace('&quot;','"') #替换双引号
 
     line = line.replace('\t','') #去掉\t
     line = line.strip()
