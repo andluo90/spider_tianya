@@ -7,7 +7,7 @@ import sys,socket,pickle,os
 
 
 
-#楼主主贴
+#http://bbs.tianya.cn/post-no05-148332-1.shtml 测试地址
 
 def get_all_urls():
     next_id = '2147483647'
@@ -215,7 +215,7 @@ def getTitle(html):
 def run():
     "运行脚本"
     print '请输入要获取的天涯贴子的第一页...'
-    while False:
+    while True:
         input_url = raw_input()
         input_url = input_url.strip().lower()
         if input_url == 'q':sys.exit('退出成功.')
@@ -226,10 +226,11 @@ def run():
             break
 
     result =raw_input('是否完全重新开始:y/n,按q退出程序\n')
-    result = result.strip()[0].lower()
+
     while True:
-        if result not in 'ynq':
+        if result not in 'ynq' or result == '':
             print '输入有误，请重新输入：y/n,按q退出程序\n'
+            result =raw_input('是否完全重新开始:y/n,按q退出程序\n')
         else:
             break
     if result == 'y':
@@ -244,7 +245,7 @@ def run():
     elif result == 'q':
         sys.exit('退出成功！')
 
-    get_all_page('http://bbs.tianya.cn/post-no05-148332-1.shtml')
+    get_all_page(input_url)
     print '下载所有页面成功！'
     getMainContent()
     print '获取主贴内容成功！'
