@@ -133,7 +133,7 @@ def saveImg(img_url):
     form = img_url[-3:]
 
     try:
-        req = urllib2.Request(img_url)
+        req = urllib2.Request(img_url,headers=headers)
         rsp = urllib2.urlopen(req).read()
         img_name = 'demo.'+form
         with open('./img/'+img_name,'wb') as f:
@@ -156,7 +156,7 @@ def save2Word():
 
         document = Document()
         for line in article_complete:
-            if len(line) == 7 or len(line) ==  13 or line == '\n':continue #手动换行符暂时解决不了
+            if len(line) == 7 or len(line) == 13 or line == '\n':continue #手动换行符暂时解决不了
 
             img_url = re.findall(r'(http:.*?\.jpg|http:.*?\.png|http:.*?\.gif)',line,re.S)
             line = re.sub(r'(http:.*?\.jpg|http:.*?\.png|http:.*?\.gif)','',line)
