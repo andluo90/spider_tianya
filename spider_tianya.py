@@ -6,10 +6,8 @@ from docx.shared import Inches
 import sys,socket,pickle,os
 
 
-# http://bbs.tianya.cn/post-no05-305785-1.shtml
 
 #楼主主贴
-headers = {'Referer':'http://www.tianya.cn/2213624/bbs?t=post','User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'}
 
 def get_all_urls():
     next_id = '2147483647'
@@ -39,6 +37,9 @@ def get_all_urls():
 
 def get_all_page(index_url):
     "获取此贴的所有页面保存到本地"
+    global headers
+    headers = {'Referer':index_url,'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'}
+
 
     try:
         req = urllib2.Request(index_url, headers=headers)
@@ -61,17 +62,22 @@ def get_all_page(index_url):
 
             for i in d_value:
                 try:
-                    url = 'http://bbs.tianya.cn/post-no05-305785-'+str(i)+'.shtml'
+                    url = re.sub(r'-(\d{1,4})\.','-'+str(i)+'.',index_url)
                     req = urllib2.Request(url,headers=headers)
                     html = urllib2.urlopen(req).read()
                     file_name = './html/%d.shtml' %i
                     with open(file_name,'wb') as f:
                         f.write(html)
                     time.sleep(5)
+                    print 'download %s success.' %url
                 except urllib2.URLError:
                     print 'get %s raise a error' %url
                 except IOError:
-                    print 'write the %s raise a error' %file_name
+                    print 'write the %s raise a error' %url
+
+            local_html_set = set([int(html[:-6]) for html in html_list])
+            all_html_set = set(range(1,page_len+1))
+            d_value =  all_html_set - local_html_set
 
 
     except urllib2.URLError,e:
@@ -95,30 +101,24 @@ def getMainContent():
     elif len(res) > 1:
         sys.eixt('楼主主贴获取的内容超过一个...')
     global _main_body
-    with open('./txt/temp.txt','wb') as f:
-        #f.write(formatHtml(res[0]))
-        f.write(res[0])
     with open('./txt/mainContent.txt','wb') as f:
-        with open('./txt/temp.txt','rb') as f2:
-            for line in f2:
-                f.write(formatHtml(line))
-
-
+        #f.write(formatHtml(res[0]))
+        res = formatHtml(res[0])
+        f.write(res)
 
 
 
 def getComment():
     "获取楼主的评论"
-
-    html_list = os.listdir('./html')
     with open('./txt/comment.txt','wb+') as f2:
-
-        for html in d_value:
-            file_name = './html/%s.shtml' %html
+        f2.write('--------评论部分--------\n')
+        for i in range(1,page_len+1):
+            file_name = './html/%d.shtml' %i
             with open(file_name,'rb') as f:
                 html = f.read()
             comment_regx = r'<div class="atl-item" _host="%s".*?<div class="bbs-content">(.*?)</div>' %host
             res = re.findall(comment_regx,html,re.S)
+
             if len(res):
                 for comment in res:
                     comment = formatHtml(comment)
@@ -129,26 +129,22 @@ def getComment():
 
 def saveImg(img_url):
     "保存图片在当前项目下，默认图片名为demo"
-    url = re.findall(r'http.*\.[a-z]{3}',img_url)
-    img_name = re.findall(r'http:.*m/([0-9]+)',img_url)
-    form = url[0][-3:]
-    img_name_complete = img_name[0]+'.'+form
-
-    img_list = os.listdir('./img')
-    if img_name_complete in img_list : return img_name_complete
+    form = img_url[-3:]
 
     try:
-        req = urllib2.Request(url[0],headers=headers)
+        req = urllib2.Request(img_url)
         rsp = urllib2.urlopen(req).read()
-
-        with open('./img/'+img_name_complete,'wb') as f:
+        img_name = 'demo.'+form
+        with open('./img/'+img_name,'wb') as f:
             f.write(rsp)
-        return img_name_complete
-    except urllib2.URLError:
+        return img_name
+    except urllib2.URLError,e:
+        print img_url
+        print e
         return 0
 
 def save2Word():
-    file_name = title+'.docx'
+    file_name = './word/'+title+'.docx'
 
 
     with open('./txt/mainContent.txt','a') as f1:
@@ -158,31 +154,37 @@ def save2Word():
     with open('./txt/mainContent.txt','rb') as article_complete:
 
         document = Document()
-
         for line in article_complete:
-            if 'http://img3' in line:
-                line.strip()
-                imgName = saveImg(line)
-                if not imgName:
-                    document.add_picture('./img'+imgName, width=Inches(4.25))
+            if len(line) == 7 or len(line) ==  13 or line == '\n':continue #手动换行符暂时解决不了
+
+            img_url = re.findall(r'(http:.*?\.jpg|http:.*?\.png|http:.*?\.gif)',line,re.S)
+            line = re.sub(r'(http:.*?\.jpg|http:.*?\.png|http:.*?\.gif)','',line)
+            for img in img_url:
+                imgName = saveImg(img)
+                if imgName != 0:
+                    try:
+                        document.add_picture('./img/'+imgName, width=Inches(3.25))
+                    except Exception:
+                         document.add_paragraph(u'图片加载失败....')
+                         document.add_paragraph(img)
                 else:
                     document.add_paragraph(u'图片加载失败....')
-                    document.add_paragraph(line.decode('UTF-8'))
-            else:
-                document.add_paragraph(line.decode('UTF-8'))
+                    document.add_paragraph(img)
+            document.add_paragraph(line.decode('UTF-8'))
+
         document.save(file_name.decode('UTF-8'))
 
 
 def formatHtml(line):
 
-    line = line.replace('<br>','') #去掉<br>标签
-    line = re.sub(r'<img src="http://static.*?original="','',line)
+    line = line.replace('<br>','\n') #去掉<br>标签
+    line = re.sub(r'<img src="http://.*?original="','',line)
     line = line.replace('<img src="http://img3','http://img3')
     line = line.replace('" />','')
+    line = line.replace('">','')
 
     line = line.replace('\t','') #去掉\t
-    line = line.lstrip()
-    if line == '\n' : line = ''
+    line = line.strip()
     return line
 
 
@@ -222,12 +224,34 @@ def run():
             print '地址格式不正确，请重新输入...或按 q 退出.'
         else:
             break
-    dir_list = os.listdir('./')
-    if 'html' not in dir_list:os.mkdir('./html')
-    get_all_page('http://bbs.tianya.cn/post-no05-305785-1.shtml')
+
+    result =raw_input('是否完全重新开始:y/n,按q退出程序\n')
+    result = result.strip()[0].lower()
+    while True:
+        if result not in 'ynq':
+            print '输入有误，请重新输入：y/n,按q退出程序\n'
+        else:
+            break
+    if result == 'y':
+        dir_list = os.listdir('./')
+        if 'html' not in dir_list:
+            os.mkdir('./html')
+        else:
+            html_list = os.listdir('./html')
+            for html in html_list:
+                os.remove('./html/'+html)
+
+    elif result == 'q':
+        sys.exit('退出成功！')
+
+    get_all_page('http://bbs.tianya.cn/post-no05-148332-1.shtml')
+    print '下载所有页面成功！'
     getMainContent()
+    print '获取主贴内容成功！'
     getComment()
+    print '获取楼主评论成功！'
     save2Word()
+    print '完成！'
 
 
 if __name__ == '__main__':
