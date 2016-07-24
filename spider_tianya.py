@@ -9,31 +9,51 @@ import sys,socket,pickle,os
 
 #http://bbs.tianya.cn/post-no05-148332-1.shtml 测试地址
 
-def get_all_urls():
-    next_id = '2147483647'
-    url_list = []
-    date_list = []
-    for index in range(0,19):
-        print index+1
-        louzu_url = 'http://www.tianya.cn/api/tw?me' \
-            'thod=userinfo.ice.getUserTotalArti' \
-            'cleList&params.userId=2213624&params.' \
-            'pageSize=20&params.bMore=true&params.publ' \
-            'icNextId=%s&params.techNextId=2147483647&params.cityNextId=2147483647' %next_id
-        resquest = urllib2.Request(louzu_url,headers=headers)
-        rep = urllib2.urlopen(resquest)
-        date_json = json.load(rep)
-        if date_json['success'] == '1':
-            date_list.append(date_json)
-            next_id = date_json['data']['public_next_id']
-            print next_id
-        time.sleep(3)
 
-    for date_json in date_list:
-        if date_json['success'] == '1':
-            for row in date_json['data']['rows']:
-                print 'http://bbs.tianya.cn/post-%s-%s-1.shtml' %(row['item'],row['art_id'])
-                url_list.append('http://bbs.tianya.cn/post-%s-%s-1.shtml' %(row['item'],row['art_id']))
+
+lz_url_dict = {}
+
+def get_all_urls(public_next_id,tech_next_id,city_next_id):
+
+    url_interface = "http://www.tianya.cn/api/tw?method=userinfo.ice.getUserTotalArticleList&" \
+                    "params.userId=2213624&" \
+                    "params.pageSize=20&" \
+                    "params.bMore=true&" \
+                    "params.publicNextId=%s&" \
+                    "params.techNextId=%s&" \
+                    "params.cityNextId=%s" %(public_next_id,tech_next_id,city_next_id)
+
+    headers = {'Referer':'http://www.tianya.cn/2213624/bbs?t=post','user-agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'}
+    url = urllib2.Request(url_interface,headers=headers)
+    respone = urllib2.urlopen(url)
+    data_dict = json.load(respone)
+
+    if data_dict['success'] == u'1':
+        data = data_dict['data']
+        rows = data_dict['data']['rows']
+        public_next_id = data['public_next_id']
+        tech_next_id = data['tech_next_id']
+        city_next_id = data['city_next_id']
+        for row in rows:
+
+            title = row['title']
+            art_id = row['art_id']
+            item = row['item']
+            url = 'http://bbs.tianya.cn/post-%s-%s-1.shtml' %(item,art_id)
+            lz_url_dict[url] = title
+            print title.encode('UTF-8')
+            print url
+
+
+        if len(rows) == 20:
+            get_all_urls(public_next_id,tech_next_id,city_next_id)
+    else:
+        print '获取接口数据失败.'
+
+
+
+
+
 
 def get_all_page(index_url):
     "获取此贴的所有页面保存到本地"
@@ -260,4 +280,7 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    get_all_urls('343414','2147483647','2147483647')
+
+
+    print 'done...'
