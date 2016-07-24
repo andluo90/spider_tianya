@@ -6,7 +6,6 @@ from docx.shared import Inches
 import sys,socket,pickle,os
 
 
-
 #http://bbs.tianya.cn/post-no05-148332-1.shtml 测试地址
 
 
@@ -230,6 +229,18 @@ def getTitle(html):
     title = re.sub(r'<[^>]+>','',title[0]).strip()
     return title
 
+def save_url_to_txt(txt ='./all_urls.txt'):
+    "保存所有链接到TXT里"
+    get_all_urls('343675','2147483647','2147483647')
+    with open(txt,'wb') as f:
+
+        for key in all_urls_dict.keys():
+            f.write(key)
+            f.write(u'    ')
+            f.write(all_urls_dict[key])
+            f.write(u'\n')
+
+
 def run():
     "运行脚本"
     print '请输入要获取的天涯贴子的第一页...'
@@ -274,11 +285,4 @@ def run():
 
 
 if __name__ == '__main__':
-    get_all_urls('343675','2147483647','2147483647')
-    with open('./all_urls.txt','wb') as f:
-
-        for key in all_urls_dict.keys():
-            f.write(key)
-            f.write(u'    ')
-            f.write(all_urls_dict[key])
-            f.write(u'\n')
+    run()
