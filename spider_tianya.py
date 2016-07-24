@@ -11,8 +11,7 @@ import sys,socket,pickle,os
 
 
 
-lz_url_dict = {}
-
+all_urls_dict = {}
 def get_all_urls(public_next_id,tech_next_id,city_next_id):
 
     url_interface = "http://www.tianya.cn/api/tw?method=userinfo.ice.getUserTotalArticleList&" \
@@ -35,16 +34,11 @@ def get_all_urls(public_next_id,tech_next_id,city_next_id):
         tech_next_id = data['tech_next_id']
         city_next_id = data['city_next_id']
         for row in rows:
-
             title = row['title']
             art_id = row['art_id']
             item = row['item']
             url = 'http://bbs.tianya.cn/post-%s-%s-1.shtml' %(item,art_id)
-            lz_url_dict[url] = title
-            print title.encode('UTF-8')
-            print url
-
-
+            all_urls_dict[title.encode('UTF-8')] = url.encode('UTF-8')
         if len(rows) == 20:
             get_all_urls(public_next_id,tech_next_id,city_next_id)
     else:
@@ -280,7 +274,11 @@ def run():
 
 
 if __name__ == '__main__':
-    get_all_urls('343414','2147483647','2147483647')
+    get_all_urls('343675','2147483647','2147483647')
+    with open('./all_urls.txt','wb') as f:
 
-
-    print 'done...'
+        for key in all_urls_dict.keys():
+            f.write(key)
+            f.write(u'    ')
+            f.write(all_urls_dict[key])
+            f.write(u'\n')
